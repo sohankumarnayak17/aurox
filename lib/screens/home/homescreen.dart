@@ -1,5 +1,10 @@
-import 'package:flutter/material.dart';
-import '../../routes.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../core/colors.dart';
+import '../../core/constants.dart';
+import '../../core/theme.dart';
+import '../../models/transaction_model.dart';
 import '../../widgets/common/app_drawer.dart';
 import 'analytics.dart';
 import 'add_transaction.dart';
@@ -7,7 +12,6 @@ import '../profile.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
-
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -29,29 +33,20 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _navigateTo(int index) {
-    // Close drawer if open
-    if (Navigator.of(context).canPop()) {
-      Navigator.of(context).pop();
-    }
+    if (Navigator.of(context).canPop()) Navigator.of(context).pop();
     setState(() => _currentIndex = index);
-    _pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 350),
-      curve: Curves.easeInOutCubic,
-    );
+    _pageController.animateToPage(index,
+        duration: AppConstants.durationNormal, curve: AppConstants.curveSnappy);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D0D),
-      drawer: AppDrawer(
-        currentIndex: _currentIndex,
-        onNavigate: _navigateTo,
-      ),
+      backgroundColor: AppColors.scaffoldBg,
+      drawer: AppDrawer(currentIndex: _currentIndex, onNavigate: _navigateTo),
       body: PageView(
         controller: _pageController,
-        physics: const NeverScrollableScrollPhysics(), // disable swipe — only tap nav
+        physics: const NeverScrollableScrollPhysics(),
         onPageChanged: (i) => setState(() => _currentIndex = i),
         children: const [
           _HomeTab(),
@@ -60,172 +55,132 @@ class _HomeScreenState extends State<HomeScreen> {
           ProfileScreen(),
         ],
       ),
-      bottomNavigationBar: _BottomNav(
-        current: _currentIndex,
-        onTap: _navigateTo,
-      ),
+      bottomNavigationBar: _BottomNav(current: _currentIndex, onTap: _navigateTo),
     );
   }
 }
 
-// ─────────────────────────────────────────────
-// Home Tab
-// ─────────────────────────────────────────────
 class _HomeTab extends StatelessWidget {
   const _HomeTab();
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
     return SafeArea(
       child: SingleChildScrollView(
         physics: const ClampingScrollPhysics(),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Builder(
-                    builder: (ctx) => GestureDetector(
-                      onTap: () => Scaffold.of(ctx).openDrawer(),
-                      child: Container(
-                        width: 44, height: 44,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E1E1E),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                              color: const Color(0xFF333333), width: 0.8),
-                        ),
-                        child: const Icon(Icons.menu_rounded,
-                            color: Color(0xFF9E9E9E), size: 22),
-                      ),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Builder(
+                  builder: (ctx) => GestureDetector(
+                    onTap: () => Scaffold.of(ctx).openDrawer(),
+                    child: Container(
+                      width: 44, height: 44,
+                      decoration: AppDecorations.darkCard(radius: 14),
+                      child: const Icon(Icons.menu_rounded, color: AppColors.textSecondary, size: 22),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Good morning ☀️',
-                            style: TextStyle(
-                                fontSize: 11, color: Color(0xFF5C5C5C))),
-                        Text('Shubh',
-                            style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white)),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    width: 44, height: 44,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF161616),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                          color: const Color(0xFF333333), width: 0.8),
-                    ),
-                    child: const Icon(Icons.notifications_none_rounded,
-                        color: Color(0xFF9E9E9E), size: 22),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // Balance Card
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(22),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF161616),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                      color: const Color(0xFF333333), width: 0.8),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Total Balance',
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: Color(0xFF5C5C5C),
-                            letterSpacing: 0.8)),
-                    const SizedBox(height: 6),
-                    const Text('\$5,420.00',
-                        style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                            letterSpacing: -0.8)),
-                    const SizedBox(height: 20),
-                    Container(height: 0.8, color: const Color(0xFF2A2A2A)),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _balanceStat(
-                              'Income',
-                              '\$3,200.00',
-                              const Color(0xFF4DFF9B),
-                              Icons.arrow_downward_rounded),
-                        ),
-                        Container(
-                            width: 0.8,
-                            height: 44,
-                            color: const Color(0xFF2A2A2A)),
-                        Expanded(
-                          child: _balanceStat(
-                              'Expense',
-                              '\$1,780.00',
-                              const Color(0xFFFF4D4D),
-                              Icons.arrow_upward_rounded),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Recent Transactions
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Recent Transactions',
-                      style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white)),
-                  GestureDetector(
-                    onTap: () {},
-                    child: const Text('See all',
-                        style: TextStyle(
-                            fontSize: 13, color: Color(0xFFD4D4D4))),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Good morning', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                      Text(user?.displayName ?? 'Shubh',
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                    ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _txTile('Spotify', 'Entertainment', '-\$15.00',
-                  Icons.headphones_outlined, const Color(0xFFFF4D4D)),
-              const SizedBox(height: 8),
-              _txTile('Grocery', 'Food', '-\$150.00',
-                  Icons.shopping_basket_outlined, const Color(0xFFFF4D4D)),
-              const SizedBox(height: 8),
-              _txTile('Salary', 'Income', '+\$3,200.00',
-                  Icons.account_balance_wallet_outlined,
-                  const Color(0xFF4DFF9B)),
-              const SizedBox(height: 32),
-            ],
-          ),
+                ),
+                Container(
+                  width: 44, height: 44,
+                  decoration: AppDecorations.darkCard(radius: 14),
+                  child: const Icon(Icons.notifications_none_rounded, color: AppColors.textSecondary, size: 22),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            _BalanceCard(userId: user?.uid ?? ''),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Recent Transactions', style: AppTextStyles.headingSmall),
+                Text('See all', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.accentSoft)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _RecentList(userId: user?.uid ?? ''),
+            const SizedBox(height: 32),
+          ],
         ),
       ),
     );
   }
+}
 
-  Widget _balanceStat(
-      String label, String value, Color color, IconData icon) {
+class _BalanceCard extends StatelessWidget {
+  final String userId;
+  const _BalanceCard({required this.userId});
+
+  @override
+  Widget build(BuildContext context) {
+    if (userId.isEmpty) return _card(0, 0, 0);
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('transactions')
+          .where('userId', isEqualTo: userId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        double inc = 0, exp = 0;
+        if (snapshot.hasData) {
+          for (final doc in snapshot.data!.docs) {
+            final d = doc.data() as Map<String, dynamic>;
+            final amt = (d['amount'] as num?)?.toDouble() ?? 0;
+            if (d['type'] == 'income') {
+              inc += amt;
+            } else {
+              exp += amt;
+            }
+          }
+        }
+        return _card(inc - exp, inc, exp);
+      },
+    );
+  }
+
+  Widget _card(double bal, double inc, double exp) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: AppDecorations.darkCard(radius: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Total Balance', style: AppTextStyles.label),
+          const SizedBox(height: 6),
+          Text('\10{bal.toStringAsFixed(2)}', style: AppTextStyles.amountLarge),
+          const SizedBox(height: 20),
+          Container(height: 0.8, color: AppColors.divider),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(child: _stat('Income', inc, AppColors.income, Icons.arrow_downward_rounded)),
+              Container(width: 0.8, height: 44, color: AppColors.divider),
+              Expanded(child: _stat('Expense', exp, AppColors.expense, Icons.arrow_upward_rounded)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _stat(String label, double val, Color color, IconData icon) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -241,95 +196,170 @@ class _HomeTab extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label,
-                style: const TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFF5C5C5C),
-                    letterSpacing: 0.8)),
+            Text(label, style: AppTextStyles.label),
             const SizedBox(height: 2),
-            Text(value,
-                style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white)),
+            Text('\10{val.toStringAsFixed(2)}', style: AppTextStyles.headingSmall),
           ],
         ),
       ],
     );
   }
+}
 
-  Widget _txTile(String title, String cat, String amount, IconData icon,
-      Color amtColor) {
+class _RecentList extends StatelessWidget {
+  final String userId;
+  const _RecentList({required this.userId});
+
+  @override
+  Widget build(BuildContext context) {
+    if (userId.isEmpty) return _empty();
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('transactions')
+          .where('userId', isEqualTo: userId)
+          .orderBy('date', descending: true)
+          .limit(10)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: CircularProgressIndicator(color: AppColors.income, strokeWidth: 2),
+            ),
+          );
+        }
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return _empty();
+        return Column(
+          children: snapshot.data!.docs.map((doc) {
+            final d = doc.data() as Map<String, dynamic>;
+            return _TxTile(data: d);
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  Widget _empty() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: const Color(0xFF161616),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF333333), width: 0.8),
-      ),
-      child: Row(
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      alignment: Alignment.center,
+      child: Column(
         children: [
-          Container(
-            width: 46, height: 46,
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E1E1E),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: const Color(0xFF9E9E9E), size: 22),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title,
-                    style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white)),
-                const SizedBox(height: 3),
-                Text(cat,
-                    style: const TextStyle(
-                        fontSize: 11, color: Color(0xFF5C5C5C))),
-              ],
-            ),
-          ),
-          Text(amount,
-              style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: amtColor)),
+          const Icon(Icons.receipt_long_outlined, color: AppColors.textMuted, size: 40),
+          const SizedBox(height: 12),
+          Text('No transactions yet',
+              style: AppTextStyles.headingSmall.copyWith(color: AppColors.textMuted)),
+          const SizedBox(height: 4),
+          Text('Add your first transaction', style: AppTextStyles.bodySmall),
         ],
       ),
     );
   }
 }
 
-// ─────────────────────────────────────────────
-// Bottom Nav
-// ─────────────────────────────────────────────
+class _TxTile extends StatelessWidget {
+  final Map<String, dynamic> data;
+  const _TxTile({required this.data});
+
+  static IconData _iconFor(String cat) {
+    switch (cat.toLowerCase()) {
+      case 'food':          return Icons.fastfood_outlined;
+      case 'shopping':      return Icons.shopping_bag_outlined;
+      case 'transport':     return Icons.directions_car_outlined;
+      case 'entertainment': return Icons.headphones_outlined;
+      case 'bills':         return Icons.receipt_long_outlined;
+      case 'healthcare':    return Icons.favorite_outline_rounded;
+      case 'education':     return Icons.school_outlined;
+      case 'salary':        return Icons.account_balance_wallet_outlined;
+      case 'freelance':     return Icons.work_outline_rounded;
+      case 'investment':    return Icons.trending_up_rounded;
+      case 'gift':          return Icons.card_giftcard_outlined;
+      default:              return Icons.receipt_outlined;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isIncome = data['type'] == 'income';
+    final amount = (data['amount'] as num?)?.toDouble() ?? 0;
+    final category = data['category'] as String? ?? 'Other';
+    final title = data['description'] as String? ?? category;
+    final ts = data['date'];
+    String dateStr = '';
+    if (ts is Timestamp) {
+      final d = ts.toDate();
+      dateStr = '//';
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: AppDecorations.darkCard(radius: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 46, height: 46,
+              decoration: AppDecorations.transactionIcon,
+              child: Icon(_iconFor(category), color: AppColors.textSecondary, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: AppTextStyles.headingSmall,
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceLight,
+                          borderRadius: BorderRadius.circular(AppConstants.radiusFull),
+                        ),
+                        child: Text(category, style: AppTextStyles.bodySmall),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(dateStr, style: AppTextStyles.bodySmall),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              '\10{amount.toStringAsFixed(2)}',
+              style: isIncome ? AppTextStyles.amountIncome : AppTextStyles.amountExpense,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _BottomNav extends StatelessWidget {
   final int current;
   final ValueChanged<int> onTap;
   const _BottomNav({required this.current, required this.onTap});
 
   static const _items = [
-    (Icons.home_outlined, Icons.home_rounded, 'Home'),
-    (Icons.bar_chart_outlined, Icons.bar_chart_rounded, 'Analytics'),
+    (Icons.home_outlined,      Icons.home_rounded,       'Home'),
+    (Icons.bar_chart_outlined, Icons.bar_chart_rounded,  'Analytics'),
     (Icons.add_circle_outline, Icons.add_circle_rounded, 'Add'),
-    (Icons.person_outline, Icons.person_rounded, 'Profile'),
+    (Icons.person_outline,     Icons.person_rounded,     'Profile'),
   ];
 
   @override
   Widget build(BuildContext context) {
     final bottom = MediaQuery.of(context).padding.bottom;
     return Container(
-      height: 72 + bottom,
+      height: AppConstants.bottomNavHeight + bottom,
       padding: EdgeInsets.only(bottom: bottom),
       decoration: const BoxDecoration(
-        color: Color(0xFF161616),
-        border:
-            Border(top: BorderSide(color: Color(0xFF2A2A2A), width: 0.8)),
+        color: AppColors.surfaceDark,
+        border: Border(top: BorderSide(color: AppColors.divider, width: 0.8)),
       ),
       child: Row(
         children: List.generate(_items.length, (i) {
@@ -343,29 +373,21 @@ class _BottomNav extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeOut,
+                    duration: AppConstants.durationFast,
                     width: active ? 24 : 0,
                     height: 3,
                     margin: const EdgeInsets.only(bottom: 5),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                       borderRadius: BorderRadius.circular(100),
                     ),
                   ),
                   Icon(active ? activeIcon : icon,
-                      color: active
-                          ? Colors.white
-                          : const Color(0xFF5C5C5C),
-                      size: 22),
+                      color: active ? AppColors.textPrimary : AppColors.textMuted, size: 22),
                   const SizedBox(height: 4),
-                  Text(label,
-                      style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          color: active
-                              ? Colors.white
-                              : const Color(0xFF5C5C5C))),
+                  Text(label, style: TextStyle(
+                      fontSize: 10, fontWeight: FontWeight.w500,
+                      color: active ? AppColors.textPrimary : AppColors.textMuted)),
                 ],
               ),
             ),

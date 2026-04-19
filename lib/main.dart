@@ -1,25 +1,35 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'routes.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(statusBarColor: Colors.transparent, statusBarIconBrightness: Brightness.light, systemNavigationBarColor: Color(0xFF0D0D0D), systemNavigationBarIconBrightness: Brightness.light));
-  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
-  runApp(const AuroxApp());
+  await Firebase.initializeApp();
+  runApp(const MyApp());
 }
 
-class AuroxApp extends StatelessWidget {
-  const AuroxApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Aurox Wallet',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(brightness: Brightness.dark, scaffoldBackgroundColor: const Color(0xFF0D0D0D), useMaterial3: true, colorScheme: const ColorScheme.dark(primary: Colors.white, surface: Color(0xFF161616), onSurface: Colors.white)),
-      initialRoute: AppRoutes.home,
-      onGenerateRoute: AppRoutes.onGenerateRoute,
-      onUnknownRoute: AppRoutes.onUnknownRoute,
+      title: 'Aurox',
+      home: const HomePage(),
+    );
+  }
+}
+
+class HomePage extends StatelessWidget {
+  const HomePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Aurox App")),
+      body: const Center(
+        child: Text("Firebase Connected ✅"),
+      ),
     );
   }
 }

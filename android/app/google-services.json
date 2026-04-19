@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "980088408492",
+    "project_id": "aurox-29ccf",
+    "storage_bucket": "aurox-29ccf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:980088408492:android:17f058c5e81d62bc305209",
+        "android_client_info": {
+          "package_name": "googleservices.json"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCKUUDHo62vlwnbaLAEOPDpp2JGAJ06onw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
