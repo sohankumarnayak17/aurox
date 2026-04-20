@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/colors.dart';
 import '../../core/constants.dart';
 import '../../core/theme.dart';
-import '../../models/transaction_model.dart';
 import '../../widgets/common/app_drawer.dart';
 import 'analytics.dart';
 import 'add_transaction.dart';
@@ -142,11 +141,7 @@ class _BalanceCard extends StatelessWidget {
           for (final doc in snapshot.data!.docs) {
             final d = doc.data() as Map<String, dynamic>;
             final amt = (d['amount'] as num?)?.toDouble() ?? 0;
-            if (d['type'] == 'income') {
-              inc += amt;
-            } else {
-              exp += amt;
-            }
+            if (d['type'] == 'income') { inc += amt; } else { exp += amt; }
           }
         }
         return _card(inc - exp, inc, exp);
@@ -164,7 +159,168 @@ class _BalanceCard extends StatelessWidget {
         children: [
           Text('Total Balance', style: AppTextStyles.label),
           const SizedBox(height: 6),
-          Text('\10{bal.toStringAsFixed(2)}', style: AppTextStyles.amountLarge),
+          Text('\`import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../core/colors.dart';
+import '../../core/constants.dart';
+import '../../core/theme.dart';
+import '../../widgets/common/app_drawer.dart';
+import 'analytics.dart';
+import 'add_transaction.dart';
+import '../profile.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int _currentIndex = 0;
+  late final PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _navigateTo(int index) {
+    if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+    setState(() => _currentIndex = index);
+    _pageController.animateToPage(index,
+        duration: AppConstants.durationNormal, curve: AppConstants.curveSnappy);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.scaffoldBg,
+      drawer: AppDrawer(currentIndex: _currentIndex, onNavigate: _navigateTo),
+      body: PageView(
+        controller: _pageController,
+        physics: const NeverScrollableScrollPhysics(),
+        onPageChanged: (i) => setState(() => _currentIndex = i),
+        children: const [
+          _HomeTab(),
+          AnalyticsScreen(),
+          AddTransactionScreen(),
+          ProfileScreen(),
+        ],
+      ),
+      bottomNavigationBar: _BottomNav(current: _currentIndex, onTap: _navigateTo),
+    );
+  }
+}
+
+class _HomeTab extends StatelessWidget {
+  const _HomeTab();
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    return SafeArea(
+      child: SingleChildScrollView(
+        physics: const ClampingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Builder(
+                  builder: (ctx) => GestureDetector(
+                    onTap: () => Scaffold.of(ctx).openDrawer(),
+                    child: Container(
+                      width: 44, height: 44,
+                      decoration: AppDecorations.darkCard(radius: 14),
+                      child: const Icon(Icons.menu_rounded, color: AppColors.textSecondary, size: 22),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Good morning', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                      Text(user?.displayName ?? 'Shubh',
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                    ],
+                  ),
+                ),
+                Container(
+                  width: 44, height: 44,
+                  decoration: AppDecorations.darkCard(radius: 14),
+                  child: const Icon(Icons.notifications_none_rounded, color: AppColors.textSecondary, size: 22),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            _BalanceCard(userId: user?.uid ?? ''),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Recent Transactions', style: AppTextStyles.headingSmall),
+                Text('See all', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.accentSoft)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _RecentList(userId: user?.uid ?? ''),
+            const SizedBox(height: 32),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BalanceCard extends StatelessWidget {
+  final String userId;
+  const _BalanceCard({required this.userId});
+
+  @override
+  Widget build(BuildContext context) {
+    if (userId.isEmpty) return _card(0, 0, 0);
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('transactions')
+          .where('userId', isEqualTo: userId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        double inc = 0, exp = 0;
+        if (snapshot.hasData) {
+          for (final doc in snapshot.data!.docs) {
+            final d = doc.data() as Map<String, dynamic>;
+            final amt = (d['amount'] as num?)?.toDouble() ?? 0;
+            if (d['type'] == 'income') { inc += amt; } else { exp += amt; }
+          }
+        }
+        return _card(inc - exp, inc, exp);
+      },
+    );
+  }
+
+  Widget _card(double bal, double inc, double exp) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: AppDecorations.darkCard(radius: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Total Balance', style: AppTextStyles.label),
+          const SizedBox(height: 6),
+          Text('\${bal.toStringAsFixed(2)}', style: AppTextStyles.amountLarge),
           const SizedBox(height: 20),
           Container(height: 0.8, color: AppColors.divider),
           const SizedBox(height: 20),
@@ -186,10 +342,7 @@ class _BalanceCard extends StatelessWidget {
       children: [
         Container(
           width: 34, height: 34,
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(10),
-          ),
+          decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
           child: Icon(icon, color: color, size: 16),
         ),
         const SizedBox(width: 10),
@@ -198,7 +351,7 @@ class _BalanceCard extends StatelessWidget {
           children: [
             Text(label, style: AppTextStyles.label),
             const SizedBox(height: 2),
-            Text('\10{val.toStringAsFixed(2)}', style: AppTextStyles.headingSmall),
+            Text('\UTF8{val.toStringAsFixed(2)}', style: AppTextStyles.headingSmall),
           ],
         ),
       ],
@@ -222,12 +375,10 @@ class _RecentList extends StatelessWidget {
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(32),
-              child: CircularProgressIndicator(color: AppColors.income, strokeWidth: 2),
-            ),
-          );
+          return const Center(child: Padding(
+            padding: EdgeInsets.all(32),
+            child: CircularProgressIndicator(color: AppColors.income, strokeWidth: 2),
+          ));
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return _empty();
         return Column(
@@ -248,8 +399,7 @@ class _RecentList extends StatelessWidget {
         children: [
           const Icon(Icons.receipt_long_outlined, color: AppColors.textMuted, size: 40),
           const SizedBox(height: 12),
-          Text('No transactions yet',
-              style: AppTextStyles.headingSmall.copyWith(color: AppColors.textMuted)),
+          Text('No transactions yet', style: AppTextStyles.headingSmall.copyWith(color: AppColors.textMuted)),
           const SizedBox(height: 4),
           Text('Add your first transaction', style: AppTextStyles.bodySmall),
         ],
@@ -282,10 +432,10 @@ class _TxTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isIncome = data['type'] == 'income';
-    final amount = (data['amount'] as num?)?.toDouble() ?? 0;
+    final amount   = (data['amount'] as num?)?.toDouble() ?? 0;
     final category = data['category'] as String? ?? 'Other';
-    final title = data['description'] as String? ?? category;
-    final ts = data['date'];
+    final title    = data['description'] as String? ?? category;
+    final ts       = data['date'];
     String dateStr = '';
     if (ts is Timestamp) {
       final d = ts.toDate();
@@ -308,8 +458,7 @@ class _TxTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: AppTextStyles.headingSmall,
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(title, style: AppTextStyles.headingSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 3),
                   Row(
                     children: [
@@ -329,7 +478,7 @@ class _TxTile extends StatelessWidget {
               ),
             ),
             Text(
-              '\10{amount.toStringAsFixed(2)}',
+              '\UTF8{amount.toStringAsFixed(2)}',
               style: isIncome ? AppTextStyles.amountIncome : AppTextStyles.amountExpense,
             ),
           ],
@@ -374,8 +523,7 @@ class _BottomNav extends StatelessWidget {
                 children: [
                   AnimatedContainer(
                     duration: AppConstants.durationFast,
-                    width: active ? 24 : 0,
-                    height: 3,
+                    width: active ? 24 : 0, height: 3,
                     margin: const EdgeInsets.only(bottom: 5),
                     decoration: BoxDecoration(
                       color: AppColors.textPrimary,
@@ -385,8 +533,7 @@ class _BottomNav extends StatelessWidget {
                   Icon(active ? activeIcon : icon,
                       color: active ? AppColors.textPrimary : AppColors.textMuted, size: 22),
                   const SizedBox(height: 4),
-                  Text(label, style: TextStyle(
-                      fontSize: 10, fontWeight: FontWeight.w500,
+                  Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500,
                       color: active ? AppColors.textPrimary : AppColors.textMuted)),
                 ],
               ),
@@ -397,3 +544,4 @@ class _BottomNav extends StatelessWidget {
     );
   }
 }
+
